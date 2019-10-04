@@ -1,0 +1,16 @@
+{
+  "name": "klonkiosk",
+  "version": "1.0.0",
+  "description": "kiosk app for ecal",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "mac-package": "electron-packager . ECAL_KIOSK --overwrite --platform=darwin --arch=x64 --prune=true --out=dist"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^6.0.11",
+    "electron-packager": "^14.0.6"
+  }
+}
