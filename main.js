@@ -96,7 +96,7 @@ function createWindow () {
       //secondWindow.toggleDevTools();
       //SHORTCUTS
       globalShortcut.register(config.shortcuts.kill, () => {
-        app.exit()
+        //app.exit()
       })
 
       globalShortcut.register("Esc", () => {
