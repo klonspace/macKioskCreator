@@ -73,6 +73,9 @@ function createWindow () {
       mainWindow.on('closed', function () {
         mainWindow = null;
       })
+      mainWindow.webContents.on('new-window', (event, url) => {
+        event.preventDefault()
+      });
       mainWindow.once('ready-to-show', () => {
         mainWindow.show()
       })
@@ -84,6 +87,7 @@ function createWindow () {
         width: 460,
         //width: 800,
         height: 360,
+        backgroundColor: "#333",
         webPreferences: {
           nodeIntegration: true
         }
