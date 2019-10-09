@@ -1,4 +1,7 @@
-const { app, globalShortcut, BrowserWindow } = require('electron')
+
+const electron = require('electron');
+const { app, globalShortcut, BrowserWindow } = electron;
+
 const ipc = require('electron').ipcMain;
 const { existsSync, readFile }  = require( 'fs')
 const { homedir }  = require( 'os')
@@ -37,7 +40,7 @@ function getURL (configPath, callback) {
   })
 }
 
-var password;
+var password, hostname;
 
 readFile(app.getAppPath()+'/password.txt', 'utf-8', (err, data) => {
   if (err) { console.log(err); return }
@@ -52,6 +55,7 @@ function hideSecondWindow() {
 }
 function createWindow () {
     getURL(defaultURLPath, (url) => {
+      hostname = getHostname(url);
       //MAIN WINDOW
       mainWindow = new BrowserWindow({
         width: config.window.width,
@@ -73,12 +77,24 @@ function createWindow () {
       mainWindow.on('closed', function () {
         mainWindow = null;
       })
-      mainWindow.webContents.on('new-window', (event, url) => {
+      mainWindow.webContents.on('new-window', (event, newURL) => {
         event.preventDefault()
       });
       mainWindow.once('ready-to-show', () => {
         mainWindow.show()
       })
+      mainWindow.webContents.on("will-navigate", (e, newURL) => {
+        var nextpageHostname = getHostname(newURL);
+        if(nextpageHostname != hostname) {
+          e.preventDefault();
+        }
+      });
+
+      
+    
+
+
+
       //SECOND WINDOW
       secondWindow = new BrowserWindow({
         modal:true,
@@ -96,7 +112,7 @@ function createWindow () {
       //secondWindow.toggleDevTools();
       //SHORTCUTS
       globalShortcut.register(config.shortcuts.kill, () => {
-        //app.exit()
+        app.exit()
       })
 
       globalShortcut.register("Esc", () => {
@@ -126,6 +142,7 @@ function createWindow () {
       //IPC MESSAGING
       ipc.on('newURL', (event, message) => {
         url = message;
+        hostname = getHostname(url);
         fs.writeFile(defaultURLPath, message, function(err) {
           if(err) {
               return console.log(err);
@@ -154,10 +171,36 @@ function createWindow () {
       ipc.on('quit', (event, message) => {
         app.exit()
       })
+      //MOUSE MOVEMENT TRACKING
+
+      var prevMousePosition = {x: 0, y: 0};
+      var lastMouseMove = new Date().getTime();
+      var resetTime = 300000;
+      function checkMousePos() {
+        var currPos = electron.screen.getCursorScreenPoint();
+        if(currPos.x != prevMousePosition.x || currPos.y != prevMousePosition.y) {
+          lastMouseMove = new Date().getTime();
+          prevMousePosition = currPos;
+        }
+    
+        if(new Date().getTime() - lastMouseMove > resetTime) {
+          mainWindow.loadURL(url);
+          lastMouseMove = new Date().getTime();
+        }
+        setTimeout(checkMousePos, 100);
+      }
+      checkMousePos()
     })
+
+    
+    
   }
 
-app.on('ready', createWindow)
+var resetTime = 5000;
+app.on('ready', function() {
+  createWindow();
+  
+});
 
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') {
@@ -168,5 +211,11 @@ app.on('window-all-closed', function () {
 app.on('activate', function () {
   if (mainWindow === null) {
     createWindow()
+    
   }
 })
+
+function getHostname(uerl) {
+  var tempURL = new URL(uerl);
+  return tempURL.hostname;
+}
